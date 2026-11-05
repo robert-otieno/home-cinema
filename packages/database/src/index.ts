@@ -129,6 +129,14 @@ export async function openDatabase(dataDir: string) {
       ).rows.length
     )
       continue;
+    if (name === "0005_television.sql") {
+      const backups = join(dataDir, "database", "backups");
+      await mkdir(backups, { recursive: true });
+      await client.execute({
+        sql: "VACUUM INTO ?",
+        args: [resolve(backups, "before-tv-" + Date.now() + ".db")],
+      });
+    }
     const source = await readFile(join(dir, name), "utf8");
     const statements = source
       .split("-- statement-breakpoint")

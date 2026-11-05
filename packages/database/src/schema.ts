@@ -35,6 +35,7 @@ export const libraries = sqliteTable("libraries", {
   id: text().primaryKey(),
   name: text().notNull(),
   path: text().notNull().unique(),
+  contentType: text().notNull().default("mixed"),
   autoScan: integer({ mode: "boolean" }).notNull().default(true),
   archived: integer({ mode: "boolean" }).notNull().default(false),
   lastScan: integer(),
@@ -43,6 +44,7 @@ export const libraries = sqliteTable("libraries", {
 export const movies = sqliteTable(
   "movies",
   {
+    mediaType: text().notNull().default("movie"),
     id: text().primaryKey(),
     title: text().notNull(),
     year: integer(),
@@ -267,3 +269,70 @@ export const transcodeJobs = sqliteTable("transcode_jobs", {
   finishedAt: integer(),
   error: text(),
 });
+
+export const series = sqliteTable("series", {
+  id: text().primaryKey(),
+  identityKey: text().notNull().unique(),
+  title: text().notNull(),
+  year: integer(),
+  overview: text(),
+  poster: text(),
+  backdrop: text(),
+  tmdbId: integer(),
+  genres: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+  cast: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+  rating: real(),
+  certification: text(),
+  manual: integer({ mode: "boolean" }).notNull().default(false),
+  review: integer({ mode: "boolean" }).notNull().default(true),
+  addedAt: integer().notNull(),
+});
+export const seasons = sqliteTable(
+  "seasons",
+  {
+    seriesId: text()
+      .notNull()
+      .references(() => series.id),
+    number: integer().notNull(),
+    name: text().notNull(),
+    overview: text(),
+    poster: text(),
+    airDate: text(),
+  },
+  (t) => [primaryKey({ columns: [t.seriesId, t.number] })],
+);
+export const episodes = sqliteTable(
+  "episodes",
+  {
+    mediaId: text()
+      .primaryKey()
+      .references(() => movies.id),
+    seriesId: text()
+      .notNull()
+      .references(() => series.id),
+    season: integer().notNull(),
+    number: integer().notNull(),
+    episodeEnd: integer().notNull(),
+    title: text().notNull(),
+    overview: text(),
+    airDate: text(),
+    still: text(),
+    tmdbId: integer(),
+    manualOrganization: integer({ mode: "boolean" }).notNull().default(false),
+    legacyMetadata: text({ mode: "json" }).$type<Record<string, any>>(),
+    metadataUpdatedAt: integer(),
+  },
+  (t) => [index("episode_order").on(t.seriesId, t.season, t.number)],
+);
+export const seriesWatchlist = sqliteTable(
+  "series_watchlist",
+  {
+    profileId: text()
+      .notNull()
+      .references(() => profiles.id),
+    seriesId: text()
+      .notNull()
+      .references(() => series.id),
+  },
+  (t) => [primaryKey({ columns: [t.profileId, t.seriesId] })],
+);

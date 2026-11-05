@@ -28,3 +28,8 @@ Library disconnect uses archival, retains relationships, and marks sources unava
 
 A future PostgreSQL port requires a dialect/schema adapter, migrations, and JSON search replacement. Services are separated from UI, but this is not a claim of a drop-in database switch.
 A single owned local connection gates ordinary operations and whole transactions. This preserves atomic updates across concurrent requests and avoids GC-owned transaction connection lifetimes in the native driver.
+
+## TV entities
+Series -> seasons -> episodes. An episode links to its existing playable ID in the legacy movies table, which now includes mediaType (movie, episode, unclassified). Existing media_files, progress, watch_history, playback_sessions, audio and subtitle foreign keys remain valid. series_watchlist provides profile-specific show watchlists.
+Logical episode identity is unique per series/season/number. episodeEnd describes combined files. legacyMetadata retains the original mistaken movie record. manualOrganization protects explicit corrections from automatic rescans.
+Migration 0005 snapshots the pre-TV database before changes. Migration 0006 adds the manual organization flag. No movie-file deletion is involved in conversion.

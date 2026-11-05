@@ -1,3 +1,4 @@
+import { TVShows, ShowDetails, TVShelf, TVContinue, TVReviewPanel } from "./TV";
 import { useState, useEffect, lazy, Suspense, type FormEvent } from "react";
 import {
   Routes,
@@ -66,6 +67,7 @@ export function App() {
     const events = new EventSource("/api/events");
     events.onmessage = () => {
       void client.invalidateQueries({ queryKey: ["movies"] });
+      void client.invalidateQueries({ queryKey: ["tv"] });
       void client.invalidateQueries({ queryKey: ["scans"] });
       void client.invalidateQueries({ queryKey: ["libraries"] });
     };
@@ -395,6 +397,7 @@ function Shell({ session }: { session: Session }) {
             Discover
           </NavLink>
           <NavLink to="/browse">Movies</NavLink>
+          <NavLink to="/shows">TV Shows</NavLink>
           <NavLink to="/watchlist">My list</NavLink>
         </nav>
         <div className="nav-actions">
@@ -446,6 +449,8 @@ function Shell({ session }: { session: Session }) {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/browse" element={<Browse />} />
+        <Route path="/shows" element={<TVShows />} />
+        <Route path="/show/:id" element={<ShowDetails />} />
         <Route path="/watchlist" element={<Browse listed />} />
         <Route path="/movie/:id" element={<Details />} />
         <Route path="/settings" element={<Admin />} />
@@ -599,7 +604,7 @@ function Home() {
   if (isPending) return <Loading />;
   if (error) return <ErrorView error={error} />;
   const available = data!.items.filter((m) => m.available);
-  if (!available.length) return <Empty />;
+  if (!available.length) return <TVShows home />;
   const featured = available.find((m) => m.backdrop) || available[0],
     continued = available.filter((m) => m.position > 0 && !m.completed);
   const preferred = new Set(continued.flatMap((m) => m.genres));
@@ -660,6 +665,8 @@ function Home() {
         </div>
       </section>
       <div className="home-shelves">
+        <TVContinue />
+        <TVShelf />
         <Shelf
           title="Pick up where you left off"
           subtitle="CONTINUE WATCHING"
@@ -750,6 +757,7 @@ function Browse({ listed = false }: { listed?: boolean }) {
   }
   return (
     <main className="page browse">
+      {listed && <TVShelf listed />}
       <div className="eyebrow">
         {listed ? "FOR ANOTHER NIGHT" : "YOUR OWN FILM UNIVERSE"}
       </div>
@@ -1096,6 +1104,7 @@ function Admin() {
         name: f.get("name"),
         path: f.get("path"),
         autoScan: f.get("auto") === "on",
+        contentType: f.get("contentType") || "mixed",
       });
       form.reset();
     });
@@ -1164,6 +1173,29 @@ function Admin() {
                       <div>
                         <h3>{l.name}</h3>
                         <code>{l.path}</code>
+                        <label className="library-kind">
+                          <span className="sr-only">
+                            Content type for {l.name}
+                          </span>
+                          <select
+                            aria-label={"Content type for " + l.name}
+                            value={l.contentType || "mixed"}
+                            onChange={(e) =>
+                              act(() =>
+                                api("/libraries/" + l.id, {
+                                  method: "PATCH",
+                                  body: JSON.stringify({
+                                    contentType: e.target.value,
+                                  }),
+                                }),
+                              )
+                            }
+                          >
+                            <option value="mixed">Mixed detection</option>
+                            <option value="movies">Movies only</option>
+                            <option value="tv">TV shows</option>
+                          </select>
+                        </label>
                         <p className={l.error ? "error" : "muted"}>
                           {l.error ||
                             "Last scan: " +
@@ -1233,6 +1265,14 @@ function Admin() {
                       required
                     />
                   </label>
+                  <label>
+                    Folder content
+                    <select name="contentType">
+                      <option value="mixed">Mixed, detect movies and TV</option>
+                      <option value="movies">Movies only</option>
+                      <option value="tv">TV shows</option>
+                    </select>
+                  </label>
                   <label className="checkbox">
                     <input type="checkbox" name="auto" defaultChecked />
                     Watch this folder for changes
@@ -1243,6 +1283,7 @@ function Admin() {
                   </button>
                 </form>
               </section>
+              <TVReviewPanel />
               <section className="panel">
                 <h2>Recent scans</h2>
                 {!scans.data?.length && (

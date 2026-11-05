@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Hls from "hls.js";
 import {
   ArrowLeft,
@@ -14,7 +14,7 @@ import {
   Loader2,
   Settings,
 } from "lucide-react";
-import type { Movie } from "@cinema/shared";
+import type { Movie, TVEpisode } from "@cinema/shared";
 import { api, post } from "./api";
 const clock = (n: number) => {
   if (!Number.isFinite(n)) return "0:00";
@@ -28,6 +28,16 @@ const clock = (n: number) => {
   );
 };
 export function Player() {
+  const { id } = useParams();
+  return <MediaPlayer key={id} />;
+}
+function MediaPlayer() {
+  const navigate = useNavigate();
+  const client = useQueryClient();
+  const [ended, setEnded] = useState(false),
+    [autoNext, setAutoNext] = useState(
+      localStorage.getItem("cinema-auto-next") !== "false",
+    );
   const { id } = useParams(),
     video = useRef<HTMLVideoElement>(null),
     container = useRef<HTMLDivElement>(null),
@@ -59,6 +69,14 @@ export function Player() {
     queryKey: ["movies", id],
     queryFn: () => api<Movie>("/movies/" + id),
   });
+  const next = useQuery({
+    queryKey: ["tv", "next", id],
+    queryFn: () => api<TVEpisode | null>("/episodes/" + id + "/next"),
+    enabled: movie.data?.mediaType === "episode",
+  });
+  const backUrl = movie.data?.seriesId
+    ? "/show/" + movie.data.seriesId + "?season=" + movie.data.seasonNumber
+    : "/movie/" + id;
   const subtitles = useQuery({
     queryKey: ["subtitles", id],
     queryFn: () => api<any[]>("/movies/" + id + "/subtitles"),
@@ -76,7 +94,12 @@ export function Player() {
       method: "PUT",
       body: JSON.stringify({ position: p }),
       keepalive: true,
-    }).catch(() => {});
+    })
+      .then(() => {
+        void client.invalidateQueries({ queryKey: ["movies"] });
+        void client.invalidateQueries({ queryKey: ["tv"] });
+      })
+      .catch(() => {});
   };
   useEffect(() => {
     if (!movie.data || !quality) return;
@@ -279,6 +302,14 @@ export function Player() {
         onCanPlay={() => setBusy(false)}
         onSeeked={save}
         onEnded={() => {
+          if (movie.data?.mediaType === "episode") {
+            setEnded(true);
+            if (autoNext && next.data) {
+              save();
+              navigate("/watch/" + next.data.id);
+              return;
+            }
+          }
           setPlaying(false);
           save();
           setShow(true);
@@ -310,12 +341,20 @@ export function Player() {
         )}
       </video>
       <div className="player-top">
-        <Link className="back-link" to={"/movie/" + id}>
+        <Link className="back-link" to={backUrl}>
           <ArrowLeft />
-          Back to film
+          {movie.data?.seriesId ? "Back to series" : "Back to film"}
         </Link>
         <div>
-          <span className="small-label">NOW SHOWING</span>
+          <span className="small-label">
+            {movie.data?.showTitle
+              ? movie.data.showTitle +
+                " · S" +
+                movie.data.seasonNumber +
+                " E" +
+                movie.data.episodeNumber
+              : "NOW SHOWING"}
+          </span>
           <h1>{movie.data?.title || "Opening your film…"}</h1>
         </div>
         <span className="badge">{mode.toUpperCase()}</span>
@@ -340,8 +379,39 @@ export function Player() {
             >
               Try compatibility playback
             </button>
-            <Link className="secondary" to={"/movie/" + id}>
-              Back to film
+            <Link className="secondary" to={backUrl}>
+              {movie.data?.seriesId ? "Back to series" : "Back to film"}
+            </Link>
+          </div>
+        </div>
+      )}
+      {ended && movie.data?.mediaType === "episode" && !error && (
+        <div className="player-message panel">
+          <h2>
+            {next.data
+              ? "Ready for the next chapter?"
+              : "You’re all caught up."}
+          </h2>
+          <p>
+            {next.data
+              ? next.data.showTitle +
+                " · S" +
+                next.data.seasonNumber +
+                " E" +
+                next.data.episodeNumber +
+                " · " +
+                next.data.title
+              : "No more available episodes follow this one in your library."}
+          </p>
+          <div className="button-row">
+            {next.data && (
+              <Link className="primary" to={"/watch/" + next.data.id}>
+                <Play size={18} />
+                Play next episode
+              </Link>
+            )}
+            <Link className="secondary" to={backUrl}>
+              Back to series
             </Link>
           </div>
         </div>
@@ -349,6 +419,22 @@ export function Player() {
       {menu && (
         <div className="player-settings panel">
           <h3>Make yourself comfortable</h3>
+          {movie.data?.mediaType === "episode" && (
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={autoNext}
+                onChange={(e) => {
+                  setAutoNext(e.target.checked);
+                  localStorage.setItem(
+                    "cinema-auto-next",
+                    String(e.target.checked),
+                  );
+                }}
+              />
+              Automatically play next episode
+            </label>
+          )}
           <label>
             Quality
             <select
@@ -451,6 +537,16 @@ export function Player() {
             <span> / {clock(duration)}</span>
           </span>
           <div className="player-spacer" />
+          {next.data && (
+            <Link
+              className="player-next"
+              to={"/watch/" + next.data.id}
+              aria-label="Next episode"
+            >
+              Next episode
+              <SkipForward size={17} />
+            </Link>
+          )}
           <button
             aria-label={volume ? "Mute" : "Unmute"}
             onClick={() => {

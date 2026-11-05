@@ -135,3 +135,9 @@ See docs/troubleshooting.md, docs/database.md, docs/security.md, and PROGRESS.md
 Live metadata check: pnpm check:metadata. This uses your server-side .env token and an isolated temporary library; it never prints the credential.
 When using a loopback reverse proxy for HTTPS, set TRUST_PROXY=true, preserve Host, forward X-Forwarded-Proto, and bind the app to loopback. Only 127.0.0.1 is trusted as the proxy.
 
+
+## TV shows
+TV support is now implemented. Use the TV Shows tab for series, seasons and local episodes. Existing imported episodes with recognizable names are reclassified without changing source files or normal playable IDs. A pre-TV database snapshot is made automatically before the schema upgrade.
+Dedicated TV folders can be set to TV shows in Cinema settings; mixed folders can keep Mixed detection. Scan the existing folder to populate TV metadata. Unclear files can be assigned to a show/season/episode from TV organization in settings. Show information and manual TMDB matching are available on each show's page.
+Episode progress, profile watchlists, specials, combined files, next available episode and automatic cross-season playback are supported. Automatic next playback can be switched off in player settings.
+For the other device, follow docs/tv-upgrade.md. Keep its existing .env and data, update the source, install dependencies, build, start, and rescan. TV series should no longer be listed as individual movies.

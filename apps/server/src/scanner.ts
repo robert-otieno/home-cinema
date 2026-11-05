@@ -1,3 +1,5 @@
+import { organizeEpisode, reclassifyExistingEpisodes } from "./television.ts";
+import { enrichTV } from "./tv-metadata.ts";
 import { readdir, stat, realpath, mkdir } from "node:fs/promises";
 import { join, extname } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -9,10 +11,12 @@ import {
   scanJobs,
   audioTracks,
   subtitleTracks,
+  episodes,
 } from "@cinema/database";
 import {
   probe,
   parseFilename,
+  parseEpisodeFilename,
   fingerprint,
   mediaExtensions,
   safePath,
@@ -35,9 +39,11 @@ export function createScanner(
       where: eq(libraries.id, id),
     });
     if (!library) return;
+    const contentType = library.contentType;
     let count = 0;
     const errors: string[] = [];
     const seen = new Set<string>();
+    const tvShows = new Set<string>();
     let traversed = true;
     try {
       await db
@@ -45,6 +51,7 @@ export function createScanner(
         .set({ status: "running" })
         .where(eq(scanJobs.id, jobId));
       notify();
+      await reclassifyExistingEpisodes(db, id);
       const root = await realpath(library.path);
       async function walk(dir: string): Promise<void> {
         let entries;
@@ -81,6 +88,19 @@ export function createScanner(
             let existing = await db.query.mediaFiles.findFirst({
               where: eq(mediaFiles.path, canonical),
             });
+            const episodeName =
+              contentType === "movies" ? null : parseEpisodeFilename(canonical);
+            if (existing && episodeName) {
+              const organized = await organizeEpisode(
+                db,
+                existing.id,
+                episodeName,
+              );
+              tvShows.add(organized.seriesId);
+              existing = await db.query.mediaFiles.findFirst({
+                where: eq(mediaFiles.id, existing.id),
+              });
+            }
             if (
               existing &&
               existing.size === info.size &&
@@ -103,6 +123,26 @@ export function createScanner(
                 try {
                   await stat(candidate.path);
                 } catch {
+                  if (!episodeName) {
+                    const candidateItem = await db.query.movies.findFirst({
+                      where: eq(movies.id, candidate.movieId),
+                    });
+                    if (candidateItem?.mediaType !== "movie") continue;
+                  }
+                  const manualEpisode = await db.query.episodes.findFirst({
+                    where: eq(episodes.mediaId, candidate.movieId),
+                  });
+                  const candidateEpisode = parseEpisodeFilename(candidate.path);
+                  if (
+                    episodeName &&
+                    !manualEpisode?.manualOrganization &&
+                    (!candidateEpisode ||
+                      candidateEpisode.showTitle.toLowerCase() !==
+                        episodeName.showTitle.toLowerCase() ||
+                      candidateEpisode.season !== episodeName.season ||
+                      candidateEpisode.episode !== episodeName.episode)
+                  )
+                    continue;
                   existing = candidate;
                   break;
                 }
@@ -111,13 +151,22 @@ export function createScanner(
             const technical = await probe(canonical, config.FFPROBE_PATH);
             const parsed = parseFilename(canonical);
             let movieId = existing?.movieId;
-            if (!movieId) {
-              const duplicate = await db.query.mediaFiles.findFirst({
-                where: eq(mediaFiles.fingerprint, fp),
-              });
-              movieId = duplicate?.movieId || randomUUID();
+            if (!movieId && !episodeName) {
+              const duplicate = await db
+                .select({ movieId: mediaFiles.movieId })
+                .from(mediaFiles)
+                .innerJoin(
+                  movies,
+                  and(
+                    eq(movies.id, mediaFiles.movieId),
+                    eq(movies.mediaType, "movie"),
+                  ),
+                )
+                .where(eq(mediaFiles.fingerprint, fp))
+                .limit(1);
+              movieId = duplicate[0]?.movieId || randomUUID();
             }
-            const selectedId = movieId;
+            let selectedId = movieId || randomUUID();
             await db.transaction(async (tx) => {
               await tx
                 .insert(movies)
@@ -175,10 +224,32 @@ export function createScanner(
                   });
               }
             });
+            const storedFile = await db.query.mediaFiles.findFirst({
+              where: eq(mediaFiles.path, canonical),
+            });
+            if (episodeName && storedFile) {
+              const organized = await organizeEpisode(
+                db,
+                storedFile.id,
+                episodeName,
+              );
+              selectedId = organized.mediaId;
+              tvShows.add(organized.seriesId);
+            } else if (contentType === "tv")
+              await db
+                .update(movies)
+                .set({ mediaType: "unclassified", review: true })
+                .where(eq(movies.id, selectedId));
             const movie = await db.query.movies.findFirst({
               where: eq(movies.id, selectedId),
             });
-            if (config.TMDB_TOKEN && !movie?.manual && !movie?.tmdbId) {
+            if (
+              !episodeName &&
+              contentType !== "tv" &&
+              config.TMDB_TOKEN &&
+              !movie?.manual &&
+              !movie?.tmdbId
+            ) {
               try {
                 const results = await searchMetadata(parsed.title, parsed.year);
                 if (
@@ -236,6 +307,14 @@ export function createScanner(
         }
       }
       await walk(root);
+      for (const showId of tvShows)
+        try {
+          await enrichTV(db, showId);
+        } catch {
+          errors.push(
+            "TV metadata temporarily unavailable; local episodes are organized.",
+          );
+        }
       if (traversed) {
         const files = await db
           .select()

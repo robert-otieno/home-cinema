@@ -73,10 +73,14 @@ export async function searchMetadata(title: string, year?: number | null) {
     confidence: confidence(title, year || null, r),
   }));
 }
-async function artwork(path: string | null, kind: "poster" | "backdrop") {
+export async function artwork(
+  path: string | null,
+  kind: "poster" | "backdrop",
+  preferredSize?: string,
+) {
   if (!path) return null;
   const cfg = await tmdb("/configuration");
-  const size = kind === "poster" ? "w500" : "w1280";
+  const size = preferredSize || (kind === "poster" ? "w500" : "w1280");
   const sizes =
     kind === "poster" ? cfg.images.poster_sizes : cfg.images.backdrop_sizes;
   const chosen = sizes.includes(size)

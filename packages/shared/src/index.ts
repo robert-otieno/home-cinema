@@ -1,4 +1,10 @@
 export type Movie = {
+  mediaType: "movie" | "episode" | "unclassified";
+  seriesId?: string;
+  showTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  episodeEnd?: number;
   id: string;
   certification: string | null;
   trailers: { name: string; url: string }[];
@@ -45,4 +51,45 @@ export type Session = {
   user: { id: string; username: string };
   profileId: string | null;
   profiles: Profile[];
+};
+export type TVEpisode = Movie & {
+  seriesId: string;
+  showTitle: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  episodeEnd: number;
+  episodeTitle: string;
+  airDate: string | null;
+  progressUpdatedAt: number;
+};
+export type TVShow = {
+  id: string;
+  title: string;
+  year: number | null;
+  overview: string | null;
+  poster: string | null;
+  backdrop: string | null;
+  genres: string[];
+  cast: string[];
+  rating: number | null;
+  certification: string | null;
+  review: boolean;
+  watchlisted: boolean;
+  seasonCount: number;
+  episodeCount: number;
+  availableCount: number;
+  completedCount: number;
+  tmdbId: number | null;
+};
+export type TVSeason = {
+  seriesId: string;
+  number: number;
+  name: string;
+  overview: string | null;
+  poster: string | null;
+  episodes: TVEpisode[];
+};
+export type TVShowDetails = TVShow & {
+  seasons: TVSeason[];
+  resumeEpisode: TVEpisode | null;
 };

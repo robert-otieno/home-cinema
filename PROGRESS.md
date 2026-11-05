@@ -5,7 +5,7 @@ Status: working development release. Core movie-library and streaming flows are 
 ## Verified
 - pnpm typecheck passes.
 - pnpm build passes and the compiled server starts and serves the React client.
-- pnpm test passes all 35 checks, including real FFmpeg media processing.
+- pnpm test passes all 47 checks, including real FFmpeg media processing.
 - Browser: household setup, folder connection, generated film discovery, Direct Play, HLS decoding, quality switching with retained position, watchlist, mobile and desktop layouts, settings, hardware diagnostics, and offline credits.
 - Live TMDB: user-configured token matched Interstellar (2014), returned metadata, and downloaded poster and backdrop. The test used an isolated database and did not populate the real library.
 - Intel HD Graphics 530 passed actual Quick Sync encoding; the server reports h264_qsv as supported.
@@ -26,7 +26,7 @@ Status: working development release. Core movie-library and streaming flows are 
 - Direct Play can handle compatible 4K; conversion targets at most 1080p or 720p. HDR tone mapping and dedicated 4K transcode profiles are not implemented.
 - PGS/VobSub images are reported but are not burned in. Text subtitle styling may be reduced.
 - Windows Intel QSV was tested. NVIDIA, AMD, Linux VA-API and other drivers still need physical validation.
-- PWA/service-worker support, casting, TV series, dedicated clients, offline downloads, remote access and PostgreSQL are future extensions.
+- PWA/service-worker support, casting, dedicated clients, offline downloads, remote access and PostgreSQL are future extensions.
 - Home shelves use the latest 200 movies; complete browsing and search use database pagination.
 - Fingerprints sample media regions, so duplicate detection is a practical heuristic.
 - Ports, binding, media tool paths and provider credentials are configured in .env. Preferences expose supported runtime controls.
@@ -48,3 +48,11 @@ Read memory.md, AGENTS.md, README.md and this file before changing code. All sou
 
 ## Update, authentication background
 Replaced the login/setup introductory copy with a random cached TMDB movie backdrop. apps/server/src/auth-backdrop.ts keeps up to eight provider-selected JPEGs in DATA_DIR/cache/auth-backdrops, refreshes daily, and reuses the pool offline. Only /api/auth/backdrop is public; private library artwork and media remain protected. Live downloads, desktop/mobile layout, build and authentication boundaries were checked.
+
+## TV support completed
+Series/season/episode data, conservative filename parsing, TV metadata and artwork, local-only episode listing, show watchlists, TV continue watching, episode progress, automatic next playback, specials and combined files are implemented.
+Migrations 0005 and 0006 preserve the playable-item store and add pre-TV database backup plus durable manual organization. Registered episodes are reclassified at startup and before unchanged-file shortcuts on scans. No source files are changed.
+Live TMDB verification used The Office (2005) with four generated local sample episodes. Browser verification passed for season selection, episode names/artwork, Direct Play, resume, watched badges and automatic cross-season playback.
+The user's affected TV library is on another device. That device has NOT been modified from this chat. Its upgrade/rescan instructions are docs/tv-upgrade.md. Physical playback and real filename acceptance on that device remain outstanding.
+
+Final TV validation: pnpm build and all 47 tests pass. The source-only upgrade ZIP excludes .env, data, node_modules, work and generated builds.

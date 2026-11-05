@@ -1,3 +1,5 @@
+import { registerTVRoutes } from "./tv-routes.ts";
+import { reclassifyExistingEpisodes, tvFamilyRatings } from "./television.ts";
 import { createAuthBackdrop } from "./auth-backdrop.ts";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
@@ -28,6 +30,10 @@ import {
   settings,
   watchHistory,
   transcodeJobs,
+  series,
+  seasons,
+  episodes,
+  seriesWatchlist,
 } from "@cinema/database";
 import { safePath, within, byteRange, mime, run } from "@cinema/media-core";
 import { config } from "./config.ts";
@@ -213,9 +219,21 @@ export async function buildApp(
     const movie = await db.query.movies.findFirst({ where: eq(movies.id, id) });
     if (
       !movie ||
-      (p?.child && !["G", "PG"].includes(movie.certification || ""))
+      (p?.child && !tvFamilyRatings.includes(movie.certification || ""))
     )
       throw new HttpError(404, "Movie not found");
+    if (movie.mediaType === "episode" && p?.child) {
+      const episode = await db.query.episodes.findFirst({
+        where: eq(episodes.mediaId, id),
+      });
+      const show = episode
+        ? await db.query.series.findFirst({
+            where: eq(series.id, episode.seriesId),
+          })
+        : null;
+      if (!show || !tvFamilyRatings.includes(show.certification || ""))
+        throw new HttpError(404, "Episode not found");
+    }
     return movie;
   }
   const loginBody = z.object({
@@ -473,6 +491,7 @@ export async function buildApp(
   function notify() {
     for (const res of subscribers) res.write('data: {"type":"library"}\n\n');
   }
+  await reclassifyExistingEpisodes(db);
   const scanner = createScanner(db, notify, app.log),
     streaming = createStreaming(db);
   const watchers = new Map<string, ReturnType<typeof chokidar.watch>>(),
@@ -556,6 +575,7 @@ export async function buildApp(
         name: z.string().trim().min(1).max(80),
         path: z.string().min(2).max(4096),
         autoScan: z.boolean().default(true),
+        contentType: z.enum(["mixed", "movies", "tv"]).default("mixed"),
       })
       .parse(req.body);
     if (!isAbsolute(b.path))
@@ -614,6 +634,7 @@ export async function buildApp(
       .object({
         name: z.string().trim().min(1).max(80).optional(),
         autoScan: z.boolean().optional(),
+        contentType: z.enum(["mixed", "movies", "tv"]).optional(),
       })
       .parse(req.body);
     await watchers.get(id)?.close();
@@ -621,6 +642,8 @@ export async function buildApp(
     clearTimeout(timers.get(id));
     await db.update(libraries).set(b).where(eq(libraries.id, id));
     await watchLibrary({ ...current, ...b });
+    if (b.contentType && b.contentType !== current.contentType)
+      await scanner.enqueue(id);
     return { ok: true };
   });
   app.delete("/api/libraries/:id", async (req) => {
@@ -679,7 +702,8 @@ export async function buildApp(
         where: eq(profiles.id, profileId),
       });
     const restrictions = [...clauses];
-    if (p?.child) restrictions.push(inArray(movies.certification, ["G", "PG"]));
+    if (p?.child)
+      restrictions.push(inArray(movies.certification, tvFamilyRatings));
     const all = await db
       .select()
       .from(movies)
@@ -712,7 +736,9 @@ export async function buildApp(
           ),
         );
     return all
-      .filter((m) => !p?.child || ["G", "PG"].includes(m.certification || ""))
+      .filter(
+        (m) => !p?.child || tvFamilyRatings.includes(m.certification || ""),
+      )
       .map((m) => {
         const file =
           files.find((f) => f.movieId === m.id && f.available) ||
@@ -724,11 +750,19 @@ export async function buildApp(
           ...m,
           available: files.some((f) => f.movieId === m.id && f.available),
           position: prog?.position || 0,
+          progressUpdatedAt: prog?.updatedAt || 0,
           completed: prog?.completed || false,
           watchlisted: listed.some((w) => w.movieId === m.id),
         };
       });
   }
+  registerTVRoutes(app, db, {
+    profile: requireProfile,
+    admin: administrator,
+    visibleMovie,
+    items: libraryMovies,
+    notify,
+  });
   app.get("/api/movies", async (req) => {
     const q = z
       .object({
@@ -747,7 +781,7 @@ export async function buildApp(
       profile = await db.query.profiles.findFirst({
         where: eq(profiles.id, profileId),
       });
-    const filters: SQL[] = [];
+    const filters: SQL[] = [eq(movies.mediaType, "movie")];
     if (q.q)
       filters.push(
         sql`instr(lower(coalesce(${movies.title},'') || ' ' || coalesce(${movies.director},'') || ' ' || ${movies.cast} || ' ' || ${movies.genres} || ' ' || coalesce(${movies.year},'')),${q.q.toLowerCase()}) > 0`,
@@ -767,7 +801,7 @@ export async function buildApp(
         sql`${movies.id} IN (SELECT movieId FROM watchlist WHERE profileId=${profileId})`,
       );
     if (profile?.child)
-      filters.push(inArray(movies.certification, ["G", "PG"]));
+      filters.push(inArray(movies.certification, tvFamilyRatings));
     const order =
       q.sort === "title"
         ? asc(movies.title)
@@ -788,7 +822,24 @@ export async function buildApp(
   app.get("/api/movies/:id", async (req) => {
     const { id } = req.params as any;
     await visibleMovie(req, id);
-    return (await libraryMovies(req, [eq(movies.id, id)]))[0];
+    const item = (await libraryMovies(req, [eq(movies.id, id)]))[0];
+    const episode = await db.query.episodes.findFirst({
+      where: eq(episodes.mediaId, id),
+    });
+    if (episode) {
+      const show = await db.query.series.findFirst({
+        where: eq(series.id, episode.seriesId),
+      });
+      return {
+        ...item,
+        seriesId: episode.seriesId,
+        showTitle: show?.title,
+        seasonNumber: episode.season,
+        episodeNumber: episode.number,
+        episodeEnd: episode.episodeEnd,
+      };
+    }
+    return item;
   });
   app.post("/api/movies/:id/watchlist", async (req) => {
     const { id } = req.params as any;
@@ -816,29 +867,31 @@ export async function buildApp(
     const file = await streaming.source(id);
     const position = Math.min(b.position, file.duration || b.position),
       completed = file.duration > 0 && position / file.duration >= 0.95;
-    const previous = await db.query.progress.findFirst({
-      where: and(eq(progress.profileId, profileId), eq(progress.movieId, id)),
+    await db.transaction(async (tx) => {
+      const previous = await tx.query.progress.findFirst({
+        where: and(eq(progress.profileId, profileId), eq(progress.movieId, id)),
+      });
+      if (completed && !previous?.completed)
+        await tx.insert(watchHistory).values({
+          id: randomUUID(),
+          profileId,
+          movieId: id,
+          completedAt: Date.now(),
+        });
+      await tx
+        .insert(progress)
+        .values({
+          profileId,
+          movieId: id,
+          position,
+          completed,
+          updatedAt: Date.now(),
+        })
+        .onConflictDoUpdate({
+          target: [progress.profileId, progress.movieId],
+          set: { position, completed, updatedAt: Date.now() },
+        });
     });
-    if (completed && !previous?.completed)
-      await db.insert(watchHistory).values({
-        id: randomUUID(),
-        profileId,
-        movieId: id,
-        completedAt: Date.now(),
-      });
-    await db
-      .insert(progress)
-      .values({
-        profileId,
-        movieId: id,
-        position,
-        completed,
-        updatedAt: Date.now(),
-      })
-      .onConflictDoUpdate({
-        target: [progress.profileId, progress.movieId],
-        set: { position, completed, updatedAt: Date.now() },
-      });
     return { ok: true, completed };
   });
   app.patch("/api/movies/:id", async (req) => {
@@ -878,6 +931,12 @@ export async function buildApp(
     const { id } = req.params as any;
     await visibleMovie(req, id);
     const b = z.object({ tmdbId: z.number().int().positive() }).parse(req.body);
+    const target = await visibleMovie(req, id);
+    if (target.mediaType !== "movie")
+      throw new HttpError(
+        409,
+        "Use the TV show matching controls for episodes",
+      );
     await applyMetadata(db, id, b.tmdbId, true);
     notify();
     return { ok: true };
@@ -1114,12 +1173,16 @@ export async function buildApp(
   app.post("/api/cache/prune", async (req) => {
     await administrator(req);
     const all = await db.select().from(movies);
+    const showArtwork = await db.select().from(series),
+      seasonArtwork = await db.select().from(seasons);
     const keep = new Set(
       all
         .flatMap((m) => [m.poster, m.backdrop])
         .filter(Boolean)
         .map((p) => p!.split("/").at(-1)),
     );
+    for (const e of await db.select().from(episodes))
+      if (e.still) keep.add(e.still.split("/").at(-1));
     let removed = 0;
     const { unlink } = await import("node:fs/promises");
     for (const item of await readdir(join(config.DATA_DIR, "artwork"), {
@@ -1188,7 +1251,11 @@ export async function buildApp(
       supportedHardware: (await hardwareCapabilities()).supported,
       selectedEncoder: await chooseEncoder(),
       metadataConfigured: !!config.TMDB_TOKEN,
-      movieCount: (await db.select().from(movies)).length,
+      movieCount: (
+        await db.select().from(movies).where(eq(movies.mediaType, "movie"))
+      ).length,
+      seriesCount: (await db.select().from(series)).length,
+      episodeCount: (await db.select().from(episodes)).length,
       mediaBytes: files.reduce((a, f) => a + f.size, 0),
       missingFiles: files.filter((f) => !f.available).length,
       sessions: await db

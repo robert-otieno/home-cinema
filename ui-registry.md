@@ -21,3 +21,8 @@ Movie details, player controls, profile picker, setup form, and admin panels sha
 ## Auth screen backdrop, 2026-11-05
 File: apps/web/src/App.tsx and apps/web/src/style.css.
 Decorative full-bleed TMDB backdrop, cover sizing, 38% horizontal focal position, .82 opacity. A dark horizontal gradient blends into the right-side sign-in form, with top/bottom fades. Form stays in grid column 2 on desktop and is centered on mobile, with translucent charcoal and 14px backdrop blur. Removed the introductory eyebrow, headline and description. Small TMDB credit appears at the bottom. Images come from a bounded public cache separate from private library artwork.
+
+## TV pages and episode rows
+Files: apps/web/src/TV.tsx, apps/web/src/Player.tsx, apps/web/src/style.css.
+Show cards reuse the 2:3 movie poster pattern. TV detail pages reuse the cinematic backdrop and poster layout. The season selector uses the standard dark select; episode rows use a subtle panel, 10px radius, numbered ordering, 16:9 still, synopsis, lime watched badge and progress rail. Rows wrap on mobile and preserve visible focus.
+TV Continue Watching uses 16:9 resume cards. Administration keeps manual show matching and unresolved-file organization inside the existing panel system. Player next-episode controls reuse standard buttons and links.

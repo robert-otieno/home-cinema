@@ -182,3 +182,85 @@ export function mime(container: string) {
     )[container] || "application/octet-stream"
   );
 }
+export type EpisodeName = {
+  showTitle: string;
+  year: number | null;
+  season: number;
+  episode: number;
+  episodeEnd: number;
+  title: string;
+};
+export function parseEpisodeFilename(input: string): EpisodeName | null {
+  const parts = input.replace(/\\/g, "/").split("/").filter(Boolean);
+  const filename = parts.at(-1) || "";
+  const stem = filename.replace(/\.[^.]+$/, "").replace(/[._]/g, " ");
+  const parent = parts.at(-2) || "",
+    grandparent = parts.at(-3) || "";
+  const seasonFolder = /^(?:season|series|s)[ ._-]*(\d{1,3})$/i.exec(parent);
+  const specials = /^specials$/i.test(parent);
+  const token =
+    /\bS(\d{1,3})[ ._-]*E(\d{1,4})(?:(?:[ ._-]*E|[ ._]*-[ ._-]*E?)(\d{1,4}))?\b/i.exec(
+      stem,
+    ) || /\b(\d{1,3})x(\d{1,4})(?:[ ._-]*x(\d{1,4}))?\b/i.exec(stem);
+  let season: number,
+    episode: number,
+    end: number,
+    prefix = "",
+    tail = "";
+  if (token) {
+    season = Number(token[1]);
+    episode = Number(token[2]);
+    end = Number(token[3] || token[2]);
+    prefix = stem.slice(0, token.index).trim();
+    tail = stem.slice(token.index + token[0].length);
+  } else if (seasonFolder || specials) {
+    const numbered =
+      /^(?:E(?:pisode)?[ ._-]*)?(\d{1,3})(?:[ ._-]+|$)(.*)$/i.exec(stem);
+    if (!numbered) return null;
+    season = specials ? 0 : Number(seasonFolder![1]);
+    episode = Number(numbered[1]);
+    end = episode;
+    tail = numbered[2];
+  } else return null;
+  if (
+    season > 999 ||
+    episode < 1 ||
+    episode > 9999 ||
+    end < episode ||
+    end > episode + 30
+  )
+    return null;
+  const folder = seasonFolder || specials ? grandparent : parent;
+  let show =
+    (seasonFolder || specials) &&
+    folder &&
+    !/^(?:tv|tv shows|shows|series|movies)$/i.test(folder)
+      ? folder
+      : prefix || folder;
+  if (!show || /^(?:tv|tv shows|shows|series|movies|season \d+)$/i.test(show))
+    return null;
+  show = show.replace(/[._]/g, " ").replace(/^[\s-]+|[\s-]+$/g, "");
+  const yearMatch = show.replace(/[()[\]\s]/g, "").match(/^\d{4}$/)
+    ? null
+    : /\b((?:19|20)\d{2})\b/.exec(show);
+  const year = yearMatch ? Number(yearMatch[1]) : null;
+  if (yearMatch) show = show.slice(0, yearMatch.index);
+  show = show.replace(/[()[\]]/g, "").trim();
+  if (!show) return null;
+  const title = tail
+    .replace(/^[\s-]+/, "")
+    .replace(
+      /\b(?:2160p|1080p|720p|480p|WEB[- ]?DL|WEBRIP|BLURAY|HEVC|H[ .]?26[45]|X26[45])\b.*$/i,
+      "",
+    )
+    .replace(/[\s-]+$/, "")
+    .trim();
+  return {
+    showTitle: show,
+    year,
+    season,
+    episode,
+    episodeEnd: end,
+    title: title || "Episode " + episode + (end !== episode ? "–" + end : ""),
+  };
+}
