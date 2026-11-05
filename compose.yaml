@@ -1,0 +1,18 @@
+services:
+  cinema:
+    build: .
+    ports:
+      - "8094:8094"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8094
+      DATA_DIR: /app/data
+      FFMPEG_PATH: ffmpeg
+      FFPROBE_PATH: ffprobe
+      TMDB_TOKEN: ${TMDB_TOKEN:-}
+    volumes:
+      - cinema-data:/app/data
+      - ${MOVIES_DIR:-./movies}:/media/movies:ro
+    restart: unless-stopped
+volumes:
+  cinema-data:

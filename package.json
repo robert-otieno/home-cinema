@@ -1,0 +1,28 @@
+{
+  "name": "home-cinema",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"pnpm --filter @cinema/server dev\" \"pnpm --filter @cinema/web dev\"",
+    "build": "pnpm typecheck && pnpm --filter @cinema/web build && pnpm --filter @cinema/server build",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --expose-gc --test tests/*.test.ts",
+    "start": "node apps/server/dist/index.js",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,css,json,html}\" \"packages/**/*.{ts,json}\" \"tests/*.ts\" \"scripts/*.{ts,mjs}\" package.json tsconfig.json pnpm-workspace.yaml",
+    "check:metadata": "tsx scripts/check-metadata.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "concurrently": "^9.0.0",
+    "prettier": "^3.9.10",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
