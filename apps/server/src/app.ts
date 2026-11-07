@@ -1,3 +1,4 @@
+import { listServerFolders } from "./folder-browser.ts";
 import { registerTVRoutes } from "./tv-routes.ts";
 import { reclassifyExistingEpisodes, tvFamilyRatings } from "./television.ts";
 import { createAuthBackdrop } from "./auth-backdrop.ts";
@@ -236,6 +237,13 @@ export async function buildApp(
     }
     return movie;
   }
+  app.get("/api/filesystem/folders", async (req) => {
+    await administrator(req);
+    const query = z
+      .object({ path: z.string().trim().min(1).max(4096).optional() })
+      .parse(req.query);
+    return listServerFolders(query.path);
+  });
   const loginBody = z.object({
     username: z.string().trim().min(2).max(80),
     password: z.string().min(12).max(256),

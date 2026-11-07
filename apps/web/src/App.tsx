@@ -1,3 +1,5 @@
+import { FolderPathField } from "./FolderPicker";
+import { MovieReview } from "./MovieReview";
 import { TVShows, ShowDetails, TVShelf, TVContinue, TVReviewPanel } from "./TV";
 import { useState, useEffect, lazy, Suspense, type FormEvent } from "react";
 import {
@@ -12,6 +14,9 @@ import {
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Play,
+  House,
+  Tv,
+  Bookmark,
   Plus,
   Check,
   Search,
@@ -42,7 +47,7 @@ function Brand() {
   return (
     <Link to="/" className="brand">
       <span className="brand-mark">
-        <Clapperboard size={21} />
+        <Clapperboard size={21} aria-hidden="true" />
       </span>
       HOME<span>CINEMA</span>
       <i>LOCAL</i>
@@ -390,15 +395,24 @@ function Shell({ session }: { session: Session }) {
   const profile = session.profiles.find((p) => p.id === session.profileId);
   return (
     <>
+      <a className="skip-link" href="#cinema-content">
+        Skip to content
+      </a>
       <header className="nav">
         <Brand />
-        <nav>
+        <nav aria-label="Main navigation">
           <NavLink to="/" end>
-            Discover
+            <House size={16} aria-hidden="true" /> Discover
           </NavLink>
-          <NavLink to="/browse">Movies</NavLink>
-          <NavLink to="/shows">TV Shows</NavLink>
-          <NavLink to="/watchlist">My list</NavLink>
+          <NavLink to="/browse">
+            <Film size={16} aria-hidden="true" /> Movies
+          </NavLink>
+          <NavLink to="/shows">
+            <Tv size={16} aria-hidden="true" /> TV Shows
+          </NavLink>
+          <NavLink to="/watchlist">
+            <Bookmark size={16} aria-hidden="true" /> My list
+          </NavLink>
         </nav>
         <div className="nav-actions">
           <Link
@@ -413,6 +427,7 @@ function Shell({ session }: { session: Session }) {
             onClick={() => setTv(!tv)}
             title="Toggle TV navigation"
             aria-label="Toggle TV navigation"
+            aria-pressed={tv}
           >
             <Monitor size={20} />
           </button>
@@ -446,25 +461,27 @@ function Shell({ session }: { session: Session }) {
           </button>
         </div>
       </header>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/browse" element={<Browse />} />
-        <Route path="/shows" element={<TVShows />} />
-        <Route path="/show/:id" element={<ShowDetails />} />
-        <Route path="/watchlist" element={<Browse listed />} />
-        <Route path="/movie/:id" element={<Details />} />
-        <Route path="/settings" element={<Admin />} />
-        <Route path="/about" element={<About />} />
-        <Route
-          path="*"
-          element={
-            <div className="center">
-              <h1>That page is not here.</h1>
-              <Link to="/">Back to cinema</Link>
-            </div>
-          }
-        />
-      </Routes>
+      <div id="cinema-content" tabIndex={-1}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/browse" element={<Browse />} />
+          <Route path="/shows" element={<TVShows />} />
+          <Route path="/show/:id" element={<ShowDetails />} />
+          <Route path="/watchlist" element={<Browse listed />} />
+          <Route path="/movie/:id" element={<Details />} />
+          <Route path="/settings" element={<Admin />} />
+          <Route path="/about" element={<About />} />
+          <Route
+            path="*"
+            element={
+              <div className="center">
+                <h1>That page is not here.</h1>
+                <Link to="/">Back to cinema</Link>
+              </div>
+            }
+          />
+        </Routes>
+      </div>
       <footer className="site-footer">
         <Brand />
         <span>Your films. Your home. Your cinema.</span>
@@ -498,7 +515,7 @@ function Empty({ listed = false }: { listed?: boolean }) {
           : "Connect a folder of movies you own, and we’ll bring your collection to life. Your files stay exactly where they are."}
       </p>
       <Link className="primary" to={listed ? "/browse" : "/settings"}>
-        {listed ? "Explore your movies" : "Connect a movie folder"}
+        {listed ? "Explore movies" : "Connect a movie folder"}
         <ArrowRight size={18} />
       </Link>
       <div className="empty-features">
@@ -530,6 +547,9 @@ function Card({ movie }: { movie: Movie }) {
             <strong>{movie.title}</strong>
             <span>{movie.year || "YOUR COLLECTION"}</span>
           </div>
+        )}
+        {movie.review && (
+          <span className="movie-review-badge">Review match</span>
         )}
         <span className="card-play">
           <Play size={22} fill="currentColor" />
@@ -629,7 +649,7 @@ function Home() {
         <div className="hero-content">
           <div className="eyebrow">
             <span />
-            TONIGHT, IN YOUR CINEMA
+            THE EVENING EDIT
           </div>
           <h1>{featured.title}</h1>
           <div className="facts">
@@ -655,30 +675,53 @@ function Home() {
             </Link>
             <Link className="secondary" to={"/movie/" + featured.id}>
               <Info size={19} />
-              More information
+              View details
             </Link>
           </div>
           <span className="hero-note">STREAMING FROM YOUR OWN COLLECTION</span>
         </div>
         <div className="hero-counter">
-          <span>01</span> / YOUR LIBRARY
+          <span>HANDPICKED FROM YOUR LIBRARY</span>YOUR NEXT MOVIE NIGHT
         </div>
       </section>
       <div className="home-shelves">
+        <section className="library-strip" aria-label="Explore your collection">
+          <div className="library-strip-copy">
+            <Clapperboard size={25} aria-hidden="true" />
+            <div>
+              <strong>A good night starts here</strong>
+              <span>
+                {available.length} {available.length === 1 ? "film" : "films"}{" "}
+                ready to watch. Make yourself at home.
+              </span>
+            </div>
+          </div>
+          <div className="library-shortcuts">
+            <Link to="/browse">
+              <Film size={16} aria-hidden="true" /> All movies
+            </Link>
+            <Link to="/shows">
+              <Tv size={16} aria-hidden="true" /> TV shows
+            </Link>
+            <Link to="/watchlist">
+              <Bookmark size={16} aria-hidden="true" /> My list
+            </Link>
+          </div>
+        </section>
         <TVContinue />
         <TVShelf />
         <Shelf
-          title="Pick up where you left off"
-          subtitle="CONTINUE WATCHING"
+          title="Continue watching"
+          subtitle="BACK TO THE GOOD PART"
           items={continued}
         />
         <Shelf
-          title="Fresh to your collection"
-          subtitle="RECENTLY ADDED"
+          title="Recently added"
+          subtitle="NEW IN YOUR CINEMA"
           items={available.slice(0, 16)}
         />
         <Shelf
-          title="A little something for you"
+          title="Tonight’s picks"
           subtitle="FROM YOUR LIBRARY"
           items={recommended.slice(0, 12)}
         />
@@ -759,23 +802,27 @@ function Browse({ listed = false }: { listed?: boolean }) {
     <main className="page browse">
       {listed && <TVShelf listed />}
       <div className="eyebrow">
-        {listed ? "FOR ANOTHER NIGHT" : "YOUR OWN FILM UNIVERSE"}
+        {listed ? "PERSONAL COLLECTION" : "ENTERTAINMENT WITHOUT LIMITS"}
       </div>
       <h1>
-        {listed ? "My list" : "The collection"}
+        {listed ? "My List" : "Explore Movies"}
         <span>{data?.total ?? "…"}</span>
       </h1>
       <p className="muted">
         {listed
-          ? "Good films are even better when you have something to look forward to."
-          : "Something for every mood. All right here at home."}
+          ? "All the stories you want to watch, saved in one place."
+          : "Unforgettable stories. Endless discoveries. Find your next favorite."}
       </p>
       <div className="filters">
         <label className="search-box">
           <Search size={19} />
           <input
             aria-label="Search movies, people, genres or years"
-            placeholder="Find a movie, a face, a feeling…"
+            placeholder={
+              listed
+                ? "Search your saved favorites..."
+                : "Search titles, actors, genres..."
+            }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -1025,6 +1072,7 @@ function Details() {
             </div>
           </div>
         </div>
+        <MovieReview key={m.id} movie={m} />
         <Shelf
           title="Keep the night going"
           subtitle="MORE FROM YOUR LIBRARY"
@@ -1169,14 +1217,12 @@ function Admin() {
                 {roots.data?.length ? (
                   roots.data.map((l) => (
                     <div className="library-root" key={l.id}>
-                      <HardDrive size={23} />
-                      <div>
+                      <HardDrive size={23} aria-hidden="true" />
+                      <div className="library-info">
                         <h3>{l.name}</h3>
                         <code>{l.path}</code>
                         <label className="library-kind">
-                          <span className="sr-only">
-                            Content type for {l.name}
-                          </span>
+                          <span>Folder content</span>
                           <select
                             aria-label={"Content type for " + l.name}
                             value={l.contentType || "mixed"}
@@ -1204,38 +1250,40 @@ function Admin() {
                                 : "Not scanned yet")}
                         </p>
                       </div>
-                      <button
-                        className="secondary"
-                        onClick={() =>
-                          act(() => post("/libraries/" + l.id + "/scan"))
-                        }
-                      >
-                        <RefreshCw size={15} />
-                        Scan
-                      </button>
-                      <button
-                        className="ghost"
-                        onClick={() =>
-                          act(() =>
-                            api("/libraries/" + l.id, {
-                              method: "PATCH",
-                              body: JSON.stringify({ autoScan: !l.autoScan }),
-                            }),
-                          )
-                        }
-                      >
-                        {l.autoScan ? "Pause watching" : "Watch changes"}
-                      </button>
-                      <button
-                        className="ghost danger"
-                        onClick={() =>
-                          act(() =>
-                            api("/libraries/" + l.id, { method: "DELETE" }),
-                          )
-                        }
-                      >
-                        Disconnect
-                      </button>
+                      <div className="library-actions">
+                        <button
+                          className="secondary"
+                          onClick={() =>
+                            act(() => post("/libraries/" + l.id + "/scan"))
+                          }
+                        >
+                          <RefreshCw size={15} />
+                          Scan
+                        </button>
+                        <button
+                          className="ghost"
+                          onClick={() =>
+                            act(() =>
+                              api("/libraries/" + l.id, {
+                                method: "PATCH",
+                                body: JSON.stringify({ autoScan: !l.autoScan }),
+                              }),
+                            )
+                          }
+                        >
+                          {l.autoScan ? "Pause watching" : "Watch changes"}
+                        </button>
+                        <button
+                          className="ghost danger"
+                          onClick={() =>
+                            act(() =>
+                              api("/libraries/" + l.id, { method: "DELETE" }),
+                            )
+                          }
+                        >
+                          Disconnect
+                        </button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -1257,14 +1305,7 @@ function Admin() {
                       maxLength={80}
                     />
                   </label>
-                  <label>
-                    Full folder path
-                    <input
-                      name="path"
-                      placeholder="D:\Movies or /mnt/movies"
-                      required
-                    />
-                  </label>
+                  <FolderPathField />
                   <label>
                     Folder content
                     <select name="contentType">

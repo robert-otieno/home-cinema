@@ -56,3 +56,22 @@ Live TMDB verification used The Office (2005) with four generated local sample e
 The user's affected TV library is on another device. That device has NOT been modified from this chat. Its upgrade/rescan instructions are docs/tv-upgrade.md. Physical playback and real filename acceptance on that device remain outstanding.
 
 Final TV validation: pnpm build and all 47 tests pass. The source-only upgrade ZIP excludes .env, data, node_modules, work and generated builds.
+
+## Movie review and server folder chooser, 2026-11-06
+Added Review match badges and adult-only per-movie TMDB search/match with optional year and local corrections. Existing matching preserves playable IDs, files, progress and watchlists.
+Added adult-only GET /api/filesystem/folders and FolderPathField dialog with server locations, subfolders, parent navigation and editable full/network path.
+Validation: pnpm build and all 49 tests pass, including matching/artwork/history and folder listing/path/auth boundaries. Signed-in browser acceptance remains outstanding; local browser reached sign-in. Other device has not been modified.
+Next: install source update on the other device, refresh, review unmatched movies and check its drives/network mounts. No schema changes for this slice.
+
+## Spotlight redesign, 2026-11-07
+Applied UI/UX Pro Max guidance to the existing React app. New apps/web/src/cinema-theme.css centralizes near-black/charcoal, ivory and warm amber styling across navigation, artwork cards, discovery, movie/TV details, settings, folder picker, authentication and player controls. App.tsx adds icon/text navigation, aria-pressed TV mode, keyboard skip link and real-data collection shortcuts.
+Design source: design-system/home-cinema/MASTER.md. Search video streaming content discovery returned Hero-Centric/OLED/Inter; adapted palette to spotlight amber. No external fonts or new dependencies. Backend/schema/media behavior unchanged.
+Validation: pnpm build and all 49 tests passed. Disposable browser checks at 375x812, 812x375 and 1440x1000 confirmed navigation, responsive filters, folder browsing/selection, season switching and skip-link focus. Fixed mobile settings overflow and overly narrow filters. Manual TMDB matching succeeded after one artwork network timeout. Screenshots saved in chat outputs. No real user credentials or media were changed; no remote device or GitHub update.
+Continuation: install the source upgrade on the other device while retaining .env and data. Physical devices, reduced-motion runtime emulation and a full accessibility audit remain unverified. CSS includes reduced-motion suppression.
+
+## Contextual TV organization, 2026-11-07
+Removed the empty informational TV organization panel. TVReviewPanel now renders only when /tv/review returns files needing manual organization, with an explicit count and assignment instructions. Removed the redundant Open TV library link. Normal TV navigation remains in the main menu.
+
+## Mobile connected folders, 2026-11-07
+Grouped each folder's actions in library-actions and named its information block library-info. Folder content now has a visible label. Mobile uses icon/info columns with a full-width action area: Scan and Watch side by side, Disconnect separate. Paths, timestamps and selectors no longer collapse into a narrow column.
+Build passes; disposable 375px browser verification confirms full-width selectors and no page overflow. Screenshot in chat outputs. No backend or data changes.

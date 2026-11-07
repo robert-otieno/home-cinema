@@ -7,7 +7,7 @@ Run from the project root:
 - pnpm dev: Fastify watch plus Vite on 5173, API proxy to 8094.
 - pnpm build: TypeScript check, web bundle and server bundle.
 - pnpm start: compiled server and static web client, default port 8094.
-- pnpm test: 47 meaningful checks using synthetic media; requires FFmpeg/FFprobe and a built client.
+- pnpm test: 49 meaningful checks using synthetic media; requires FFmpeg/FFprobe and a built client.
 - pnpm check:metadata: isolated live provider validation. Uses .env without printing secrets.
 - pnpm format: format source with Prettier.
 
@@ -33,3 +33,7 @@ The user operates the affected TV library on another device. TV upgrade instruct
 TV files use stable playable IDs in the legacy movies table, distinguished by mediaType. Normalized series/seasons/episodes and series_watchlist sit above it. Keep the shared playback/progress pipeline, preserve source files and progress, and never reapply movie-provider matching to an episode.
 Recognized imports reclassify at startup and during scans, including unchanged files. Manual organization survives future scans and renamed-source recovery. TV-only roots quarantine ambiguous names for review. Episode identity takes priority over sampled fingerprints, so different episodes with identical bytes are not collapsed.
 
+
+
+## Spotlight visual system
+The 2026-11-07 redesign uses design-system/home-cinema/MASTER.md and apps/web/src/cinema-theme.css (loaded after style.css). New visual work should use these charcoal/ivory/amber tokens. ui-registry.md documents the current patterns. Keep the media-server folder chooser and per-film review workflow.

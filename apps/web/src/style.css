@@ -2125,3 +2125,211 @@ hr {
     width: 18px;
   }
 }
+.movie-review-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 8px;
+  border: 1px solid #d0ef8530;
+  border-radius: 4px;
+  background: #10170feb;
+  color: var(--accent);
+  font-size: 10px;
+}
+.movie-review {
+  max-width: 1100px;
+  margin: 0 0 40px;
+}
+.movie-review > .ghost {
+  padding-left: 0;
+}
+.movie-match-search {
+  display: grid;
+  grid-template-columns: 1fr 130px auto;
+  gap: 14px;
+  align-items: end;
+  margin: 25px 0;
+}
+.movie-match-results article {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+}
+.movie-match-results article > div {
+  flex: 1;
+}
+.movie-match-results h3 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+.movie-match-results h3 > span {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 12px;
+}
+.movie-match-results p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.movie-review-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 13px;
+}
+.movie-local-corrections {
+  margin-top: 25px;
+}
+.movie-local-corrections summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #bac9ad;
+}
+.movie-local-corrections .stack {
+  margin-top: 20px;
+}
+.folder-path-control {
+  display: flex;
+  gap: 9px;
+}
+.folder-path-control > input {
+  cursor: pointer;
+  min-width: 0;
+}
+.folder-path-control > .secondary {
+  padding: 10px 14px;
+}
+.folder-picker {
+  padding: 0;
+  width: min(690px, calc(100vw - 28px));
+  max-height: calc(100dvh - 40px);
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid #46513e;
+  border-radius: 14px;
+  box-shadow: 0 30px 120px #000b;
+}
+.folder-picker::backdrop {
+  background: #000a;
+  backdrop-filter: blur(5px);
+}
+.folder-picker-inner {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 42px);
+}
+.folder-picker header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 15px;
+}
+.folder-picker h2 {
+  font-size: 23px;
+  margin-bottom: 14px;
+}
+.folder-picker-path {
+  display: flex;
+  gap: 10px;
+}
+.folder-picker-path input {
+  min-width: 0;
+  font-size: 12px;
+}
+.folder-picker nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+.folder-picker nav > .ghost {
+  font-size: 11px;
+  padding: 7px;
+}
+.folder-picker nav > span {
+  width: 100%;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  padding: 4px;
+}
+.folder-picker-list {
+  min-height: 170px;
+  max-height: 350px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  padding: 8px;
+}
+.folder-picker-list > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 12px;
+  font-size: 13px;
+}
+.folder-picker-list > button:hover {
+  background: #d0ef8510;
+  color: var(--accent);
+}
+.folder-picker-list > button > span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.folder-picker-list > p {
+  padding: 12px;
+  font-size: 12px;
+}
+.folder-picker footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+@media (max-width: 760px) {
+  .movie-match-search {
+    grid-template-columns: 1fr 100px;
+  }
+  .movie-match-search > button {
+    grid-column: 1/-1;
+  }
+  .movie-match-results article {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .movie-match-results article > button {
+    align-self: flex-start;
+  }
+  .folder-picker-inner {
+    padding: 18px;
+  }
+  .folder-path-control > .secondary {
+    font-size: 0;
+    padding: 10px;
+  }
+  .folder-path-control > .secondary svg {
+    width: 20px;
+  }
+  .folder-picker footer .primary,
+  .folder-picker footer .secondary {
+    padding: 12px 14px;
+    font-size: 12px;
+  }
+}

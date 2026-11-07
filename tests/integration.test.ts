@@ -133,6 +133,10 @@ test(
       );
       await t.test("unauthenticated library access is denied", async () => {
         assert.equal(
+          (await app.inject({ url: "/api/filesystem/folders" })).statusCode,
+          401,
+        );
+        assert.equal(
           (await request("GET", "/api/auth/backdrop")).statusCode,
           204,
         );
@@ -327,6 +331,91 @@ test(
         assert.equal(movie.position, 4);
         assert.ok(movie.watchlisted);
       });
+      await t.test(
+        "manual movie matching clears review, caches artwork and retains progress and watchlist",
+        async () => {
+          const originalFetch = globalThis.fetch,
+            originalToken = config.TMDB_TOKEN;
+          config.TMDB_TOKEN = "test-placeholder";
+          globalThis.fetch = async (input: any) => {
+            const url = String(input);
+            if (url.includes("/search/movie")) {
+              assert.ok(url.includes("year=2026"));
+              return Response.json({
+                results: [
+                  {
+                    id: 997766,
+                    title: "Cinema Test Matched",
+                    release_date: "2026-01-01",
+                    overview: "Correct release",
+                  },
+                ],
+              });
+            }
+            if (url.endsWith("/configuration"))
+              return Response.json({
+                images: {
+                  secure_base_url: "https://image.tmdb.org/t/p/",
+                  poster_sizes: ["w500"],
+                  backdrop_sizes: ["w1280"],
+                },
+              });
+            if (url.startsWith("https://image.tmdb.org/"))
+              return new Response(
+                Buffer.from(
+                  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j4n8AAAAASUVORK5CYII=",
+                  "base64",
+                ),
+                { headers: { "content-type": "image/png" } },
+              );
+            if (url.includes("/movie/997766"))
+              return Response.json({
+                id: 997766,
+                title: "Cinema Test Matched",
+                original_title: "Cinema Test Matched",
+                release_date: "2026-01-01",
+                original_language: "en",
+                overview: "The right film.",
+                vote_average: 7,
+                genres: [],
+                credits: { cast: [], crew: [] },
+                poster_path: "/review-match.png",
+                backdrop_path: "/review-backdrop.png",
+                release_dates: { results: [] },
+              });
+            throw new Error("Unexpected metadata request");
+          };
+          try {
+            const search = await request(
+              "GET",
+              "/api/metadata/search?q=Cinema&year=2026",
+            );
+            assert.equal(search.statusCode, 200, search.body);
+            const result = await request(
+              "POST",
+              "/api/movies/" + movieId + "/match",
+              { tmdbId: search.json()[0].id },
+            );
+            assert.equal(result.statusCode, 200, result.body);
+            const matched = (
+              await request("GET", "/api/movies/" + movieId)
+            ).json();
+            assert.equal(matched.id, movieId);
+            assert.equal(matched.review, false);
+            assert.equal(matched.title, "Cinema Test Matched");
+            assert.equal(matched.position, 4);
+            assert.equal(matched.watchlisted, true);
+            assert.ok(matched.poster);
+            assert.equal(
+              (await request("GET", matched.poster)).statusCode,
+              200,
+            );
+          } finally {
+            globalThis.fetch = originalFetch;
+            config.TMDB_TOKEN = originalToken;
+          }
+        },
+      );
       await t.test(
         "HLS conversion serves authorized playlists and segments and cleans up",
         async () => {
@@ -569,6 +658,10 @@ test(
           );
           assert.equal((await request("GET", "/api/movies")).json().total, 0);
           assert.equal((await request("GET", "/api/system")).statusCode, 403);
+          assert.equal(
+            (await request("GET", "/api/filesystem/folders")).statusCode,
+            403,
+          );
           const me = (await request("GET", "/api/me")).json();
           await request(
             "POST",
@@ -1025,3 +1118,51 @@ test(
     }
   },
 );
+
+test("server folder browsing lists directories only and validates paths", async () => {
+  const { listServerFolders } =
+    await import("../apps/server/src/folder-browser.ts");
+  const { symlink } = await import("node:fs/promises");
+  const root = await mkdtemp(join(tmpdir(), "cinema-folder-picker-"));
+  try {
+    await mkdir(join(root, "Season 2"));
+    await mkdir(join(root, "Season 10"));
+    await mkdir(join(root, ".hidden"));
+    await writeFile(
+      join(root, "private-file.txt"),
+      "This must not be listed as a selectable folder",
+    );
+    await symlink(
+      join(root, "Season 2"),
+      join(root, "linked-folder"),
+      "junction",
+    ).catch(() => {});
+    const listing = await listServerFolders(root);
+    assert.deepEqual(
+      listing.folders.map((f) => f.name),
+      ["Season 2", "Season 10"],
+    );
+    assert.equal(
+      listing.path,
+      await (await import("node:fs/promises")).realpath(root),
+    );
+    assert.ok(listing.parent);
+    const selected = await listServerFolders(join(root, "Season 2"));
+    assert.equal(selected.folders.length, 0);
+    await assert.rejects(() => listServerFolders("relative/path"));
+    await assert.rejects(() =>
+      listServerFolders(join(root, "private-file.txt")),
+    );
+    await assert.rejects(() => listServerFolders(join(root, "missing")));
+    const locations = await listServerFolders();
+    assert.ok(locations.folders.length > 0);
+    assert.equal(locations.path, null);
+  } finally {
+    await rm(root, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
+  }
+});

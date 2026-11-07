@@ -45,3 +45,22 @@ Live The Office metadata passed using generated sample files in work/tv-preview-
 For the other device, use docs/tv-upgrade.md: stop server, backup, update source (do not replace .env or data), pnpm install --frozen-lockfile, pnpm build, pnpm start, and scan the existing TV folder. No Git push or remote update was performed.
 Final TV validation: TypeScript/build pass and all 47 automated tests pass. Home-Cinema-TV-Upgrade.zip and its guide were saved in this chat outputs. The archive is source-only and excludes credentials and runtime data. No remote-device update or Git push was performed.
 Final grouping edge checks also pass: season folders provide a consistent show title/year even when filenames omit it; new viewers start with regular episodes before specials. The upgrade ZIP was refreshed and compared with the final source files. Local port 8094 was restarted successfully; existing account setup was preserved. The other device still requires the documented source update and rescan.
+
+## Movie review and server folder chooser, 2026-11-06
+Added Review match badges and adult-only per-movie TMDB search/match with optional year and local corrections. Existing matching preserves playable IDs, files, progress and watchlists.
+Added adult-only GET /api/filesystem/folders and FolderPathField dialog with server locations, subfolders, parent navigation and editable full/network path.
+Validation: pnpm build and all 49 tests pass, including matching/artwork/history and folder listing/path/auth boundaries. Signed-in browser acceptance remains outstanding; local browser reached sign-in. Other device has not been modified.
+Next: install source update on the other device, refresh, review unmatched movies and check its drives/network mounts. No schema changes for this slice.
+
+## Spotlight redesign, 2026-11-07
+Applied UI/UX Pro Max guidance to the existing React app. New apps/web/src/cinema-theme.css centralizes near-black/charcoal, ivory and warm amber styling across navigation, artwork cards, discovery, movie/TV details, settings, folder picker, authentication and player controls. App.tsx adds icon/text navigation, aria-pressed TV mode, keyboard skip link and real-data collection shortcuts.
+Design source: design-system/home-cinema/MASTER.md. Search video streaming content discovery returned Hero-Centric/OLED/Inter; adapted palette to spotlight amber. No external fonts or new dependencies. Backend/schema/media behavior unchanged.
+Validation: pnpm build and all 49 tests passed. Disposable browser checks at 375x812, 812x375 and 1440x1000 confirmed navigation, responsive filters, folder browsing/selection, season switching and skip-link focus. Fixed mobile settings overflow and overly narrow filters. Manual TMDB matching succeeded after one artwork network timeout. Screenshots saved in chat outputs. No real user credentials or media were changed; no remote device or GitHub update.
+Continuation: install the source upgrade on the other device while retaining .env and data. Physical devices, reduced-motion runtime emulation and a full accessibility audit remain unverified. CSS includes reduced-motion suppression.
+
+## Contextual TV organization, 2026-11-07
+Removed the empty informational TV organization panel. TVReviewPanel now renders only when /tv/review returns files needing manual organization, with an explicit count and assignment instructions. Removed the redundant Open TV library link. Normal TV navigation remains in the main menu.
+
+## Mobile connected folders, 2026-11-07
+Grouped each folder's actions in library-actions and named its information block library-info. Folder content now has a visible label. Mobile uses icon/info columns with a full-width action area: Scan and Watch side by side, Disconnect separate. Paths, timestamps and selectors no longer collapse into a narrow column.
+Build passes; disposable 375px browser verification confirms full-width selectors and no page overflow. Screenshot in chat outputs. No backend or data changes.

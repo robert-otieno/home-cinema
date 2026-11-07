@@ -6,6 +6,7 @@ Passwords and profile PINs use Node scrypt with unique salts. Random session tok
 Media roots are administrator configured absolute paths. Every stream rechecks the canonical source against its configured root. Symbolic links are skipped in scans. No API accepts a playback filesystem path. Media files are never deleted.
 Scans run in a serial background queue, persist their state, fingerprint file samples to reconnect moved files, and leave missing files marked unavailable. FFprobe supplies technical facts. TMDB credentials stay in the environment. Artwork is cached locally with bounded downloads.
 Direct Play is preferred. An explicitly requested compatibility session runs FFmpeg to create HLS segments, with one concurrent process by default, session ownership checks, idle timeout, and cleanup. Initial encoding is CPU H.264/AAC. Encoder listing does not establish that hardware encoding works.
-The UI uses black/charcoal, warm ivory type, lime accent, large cinematic typography, cached artwork, and visible keyboard focus. Empty library views guide setup and never show fake movies.
+The UI uses near-black/charcoal, ivory type, spotlight amber actions, large cinematic typography, cached artwork, and visible keyboard focus (design-system/home-cinema/MASTER.md). Empty library views guide setup and never show fake movies.
 Implementation order: foundation and scanner, metadata, streaming, cinematic browsing, profiles/TV, deployment and verification. Production readiness and physical device support require additional verification, recorded in PROGRESS.md.
 Reference documentation: https://orm.drizzle.team/docs/sqlite/get-started-sqlite , https://fastify.dev/docs/latest/Reference/Reply/ , https://ffmpeg.org/ffmpeg-formats.html
+

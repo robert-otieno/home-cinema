@@ -1,27 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import type { SubmitEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import {
-  Play,
-  Plus,
-  Check,
-  ArrowLeft,
-  ArrowRight,
-  Tv,
-  Search,
-  FolderPlus,
-  AlertCircle,
-} from "lucide-react";
+import { Play, Plus, Check, ArrowLeft, ArrowRight, Tv, Search, FolderPlus, AlertCircle } from "lucide-react";
 import type { TVShow, TVShowDetails, TVEpisode, Session } from "@cinema/shared";
 import { api, post } from "./api";
-const code = (e: TVEpisode) =>
-  "S" +
-  String(e.seasonNumber).padStart(2, "0") +
-  " · E" +
-  String(e.episodeNumber).padStart(2, "0") +
-  (e.episodeEnd !== e.episodeNumber
-    ? "–" + String(e.episodeEnd).padStart(2, "0")
-    : "");
+
+const code = (e: TVEpisode) => "S" + String(e.seasonNumber).padStart(2, "0") + " · E" + String(e.episodeNumber).padStart(2, "0") + (e.episodeEnd !== e.episodeNumber ? "–" + String(e.episodeEnd).padStart(2, "0") : "");
+
 function ShowCard({ show }: { show: TVShow }) {
   return (
     <Link className="movie-card" to={"/show/" + show.id}>
@@ -39,35 +25,27 @@ function ShowCard({ show }: { show: TVShow }) {
           <Play size={22} fill="currentColor" />
         </span>
         {show.review && <span className="tv-review-badge">Review match</span>}
-        {!show.availableCount && (
-          <span className="unavailable">Files unavailable</span>
-        )}
+        {!show.availableCount && <span className="unavailable">Files unavailable</span>}
       </div>
       <h3>{show.title}</h3>
       <p>
-        {show.year || "TV series"} · {show.seasonCount}{" "}
-        {show.seasonCount === 1 ? "season" : "seasons"} · {show.episodeCount}{" "}
-        episodes
+        {show.year || "TV series"} · {show.seasonCount} {show.seasonCount === 1 ? "season" : "seasons"} · {show.episodeCount} episodes
       </p>
     </Link>
   );
 }
+
 export function TVShelf({ listed = false }: { listed?: boolean }) {
   const { data } = useQuery({
     queryKey: ["tv", listed ? "watchlist" : "shelf"],
-    queryFn: () =>
-      api<{ items: TVShow[] }>(
-        "/series?limit=12" + (listed ? "&watchlist=true" : ""),
-      ),
+    queryFn: () => api<{ items: TVShow[] }>("/series?limit=12" + (listed ? "&watchlist=true" : "")),
   });
   if (!data?.items.length) return null;
   return (
     <section className="shelf">
       <div className="section-heading">
         <div>
-          <span className="small-label">
-            {listed ? "MY TV LIST" : "YOUR SERIES"}
-          </span>
+          <span className="small-label">{listed ? "MY TV LIST" : "YOUR SERIES"}</span>
           <h2>{listed ? "Shows for another night" : "One more episode"}</h2>
         </div>
         <Link to="/shows">
@@ -83,6 +61,7 @@ export function TVShelf({ listed = false }: { listed?: boolean }) {
     </section>
   );
 }
+
 export function TVContinue() {
   const { data } = useQuery({
     queryKey: ["tv", "continue"],
@@ -100,19 +79,12 @@ export function TVContinue() {
       <div className="tv-continue-row">
         {data.items.map((e) => (
           <Link key={e.id} to={"/watch/" + e.id} className="tv-resume-card">
-            <div
-              className="tv-resume-image"
-              style={
-                e.backdrop ? { backgroundImage: "url(" + e.backdrop + ")" } : {}
-              }
-            >
+            <div className="tv-resume-image" style={e.backdrop ? { backgroundImage: "url(" + e.backdrop + ")" } : {}}>
               <Play size={26} fill="currentColor" />
               <span className="card-progress">
                 <i
                   style={{
-                    width:
-                      Math.min(100, (e.position / (e.duration || 1)) * 100) +
-                      "%",
+                    width: Math.min(100, (e.position / (e.duration || 1)) * 100) + "%",
                   }}
                 />
               </span>
@@ -127,29 +99,22 @@ export function TVContinue() {
     </section>
   );
 }
+
 export function TVShows({ home = false }: { home?: boolean }) {
   const [params, setParams] = useSearchParams(),
     [q, setQ] = useState(params.get("q") || "");
   const page = Number(params.get("offset") || 0);
   const { data, isPending, error } = useQuery({
     queryKey: ["tv", "browse", q, page],
-    queryFn: () =>
-      api<{ items: TVShow[]; total: number }>(
-        "/series?q=" + encodeURIComponent(q) + "&offset=" + page + "&limit=60",
-      ),
+    queryFn: () => api<{ items: TVShow[]; total: number }>("/series?q=" + encodeURIComponent(q) + "&offset=" + page + "&limit=60"),
   });
   return (
     <main className="page tv-page">
-      <div className="eyebrow">
-        {home ? "MAKE IT AN EPISODE NIGHT" : "SEASONS OF GOOD STORIES"}
-      </div>
+      <div className="eyebrow">{home ? "MAKE IT AN EPISODE NIGHT" : "SEASONS OF GOOD STORIES"}</div>
       <h1>
         TV shows<span className="tv-count">{data?.total ?? "…"}</span>
       </h1>
-      <p className="muted">
-        Your series, organized by season. Every episode streams from your own
-        library.
-      </p>
+      {/* <p className="muted">Your series, organized by season. Every episode streams from your own library.</p> */}
       <div className="filters">
         <label className="search-box">
           <Search size={19} />
@@ -174,11 +139,8 @@ export function TVShows({ home = false }: { home?: boolean }) {
       ) : !data?.items.length ? (
         <section className="empty tv-empty">
           <Tv size={40} />
-          <h2>{q ? "No shows found" : "Your next series starts here"}</h2>
-          <p>
-            Connect a TV folder in settings. Use names such as Show Name/Season
-            01/Show Name S01E01.mkv.
-          </p>
+          <h2>{q ? "No shows found" : "Find Your Next Obsession"}</h2>
+          <p>Connect a TV folder in settings.</p>
           <Link className="primary" to="/settings">
             <FolderPlus size={18} />
             Manage folders
@@ -192,21 +154,13 @@ export function TVShows({ home = false }: { home?: boolean }) {
             ))}
           </div>
           <div className="pagination">
-            <button
-              disabled={!page}
-              onClick={() =>
-                setParams({ offset: String(Math.max(0, page - 60)) })
-              }
-            >
+            <button disabled={!page} onClick={() => setParams({ offset: String(Math.max(0, page - 60)) })}>
               Previous
             </button>
             <span>
               {page + 1}–{Math.min(page + 60, data.total)} of {data.total}
             </span>
-            <button
-              disabled={page + 60 >= data.total}
-              onClick={() => setParams({ offset: String(page + 60) })}
-            >
+            <button disabled={page + 60 >= data.total} onClick={() => setParams({ offset: String(page + 60) })}>
               Next
             </button>
           </div>
@@ -215,6 +169,7 @@ export function TVShows({ home = false }: { home?: boolean }) {
     </main>
   );
 }
+
 export function ShowDetails() {
   const { id } = useParams(),
     client = useQueryClient(),
@@ -229,8 +184,7 @@ export function ShowDetails() {
   });
   const me = useQuery({ queryKey: ["me"], queryFn: () => api<Session>("/me") });
   const list = useMutation({
-    mutationFn: () =>
-      post("/series/" + id + "/watchlist", { enabled: !show?.watchlisted }),
+    mutationFn: () => post("/series/" + id + "/watchlist", { enabled: !show?.watchlisted }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["tv"] }),
   });
   if (isPending)
@@ -248,22 +202,12 @@ export function ShowDetails() {
         <Link to="/shows">Back to TV shows</Link>
       </main>
     );
-  const selected = Number(
-      params.get("season") ??
-        show.seasons.find((s) => s.number > 0)?.number ??
-        show.seasons[0]?.number ??
-        0,
-    ),
+  const selected = Number(params.get("season") ?? show.seasons.find((s) => s.number > 0)?.number ?? show.seasons[0]?.number ?? 0),
     season = show.seasons.find((s) => s.number === selected) || show.seasons[0];
   const profile = me.data?.profiles.find((p) => p.id === me.data.profileId);
   return (
     <main className="details tv-details">
-      <div
-        className="detail-backdrop"
-        style={
-          show.backdrop ? { backgroundImage: "url(" + show.backdrop + ")" } : {}
-        }
-      />
+      <div className="detail-backdrop" style={show.backdrop ? { backgroundImage: "url(" + show.backdrop + ")" } : {}} />
       <div className="detail-content">
         <Link className="back-link" to="/shows">
           <ArrowLeft size={18} />
@@ -286,51 +230,28 @@ export function ShowDetails() {
             <div className="facts">
               <span>{show.year}</span>
               <span>{show.seasons.length} seasons in your library</span>
-              {show.rating != null && (
-                <span className="rating">★ {show.rating.toFixed(1)}</span>
-              )}
-              {show.certification && (
-                <span className="badge">{show.certification}</span>
-              )}
+              {show.rating != null && <span className="rating">★ {show.rating.toFixed(1)}</span>}
+              {show.certification && <span className="badge">{show.certification}</span>}
             </div>
             <div className="tags">
               {show.genres.map((g) => (
                 <span key={g}>{g}</span>
               ))}
             </div>
-            <p className="synopsis">
-              {show.overview ||
-                "A series from your personal collection. Choose a season and settle into the next chapter."}
-            </p>
+            <p className="synopsis">{show.overview || "A series from your personal collection. Choose a season and settle into the next chapter."}</p>
             <div className="button-row">
               {show.resumeEpisode && (
-                <Link
-                  className="primary"
-                  to={"/watch/" + show.resumeEpisode.id}
-                >
+                <Link className="primary" to={"/watch/" + show.resumeEpisode.id}>
                   <Play size={18} fill="currentColor" />
-                  {show.resumeEpisode.position > 0 &&
-                  !show.resumeEpisode.completed
-                    ? "Resume"
-                    : "Play"}{" "}
-                  {code(show.resumeEpisode)}
+                  {show.resumeEpisode.position > 0 && !show.resumeEpisode.completed ? "Resume" : "Play"} {code(show.resumeEpisode)}
                 </Link>
               )}
-              <button
-                className="secondary"
-                disabled={list.isPending}
-                onClick={() => list.mutate()}
-              >
-                {show.watchlisted ? <Check size={18} /> : <Plus size={18} />}My
-                list
+              <button className="secondary" disabled={list.isPending} onClick={() => list.mutate()}>
+                {show.watchlisted ? <Check size={18} /> : <Plus size={18} />}My list
               </button>
             </div>
             {list.error && <p className="error">{list.error.message}</p>}
-            {!!show.cast.length && (
-              <p className="muted small tv-cast">
-                Starring: {show.cast.slice(0, 10).join(", ")}
-              </p>
-            )}
+            {!!show.cast.length && <p className="muted small tv-cast">Starring: {show.cast.slice(0, 10).join(", ")}</p>}
           </div>
         </div>
         <section className="tv-seasons">
@@ -341,15 +262,10 @@ export function ShowDetails() {
             </div>
             <label className="season-picker">
               <span className="sr-only">Season</span>
-              <select
-                aria-label="Season"
-                value={season?.number ?? 0}
-                onChange={(e) => setParams({ season: e.target.value })}
-              >
+              <select aria-label="Season" value={season?.number ?? 0} onChange={(e) => setParams({ season: e.target.value })}>
                 {show.seasons.map((s) => (
                   <option key={s.number} value={s.number}>
-                    {s.name} · {s.episodes.length}{" "}
-                    {s.episodes.length === 1 ? "episode" : "episodes"}
+                    {s.name} · {s.episodes.length} {s.episodes.length === 1 ? "episode" : "episodes"}
                   </option>
                 ))}
               </select>
@@ -365,37 +281,18 @@ export function ShowDetails() {
                   if (!e.available) event.preventDefault();
                 }}
                 aria-disabled={!e.available}
-                className={
-                  "episode-row " + (!e.available ? "episode-missing" : "")
-                }
+                className={"episode-row " + (!e.available ? "episode-missing" : "")}
               >
                 <div className="episode-number">
                   {String(e.episodeNumber).padStart(2, "0")}
                   {e.episodeEnd !== e.episodeNumber && "–" + e.episodeEnd}
                 </div>
-                <div
-                  className="episode-thumb"
-                  style={
-                    e.backdrop
-                      ? { backgroundImage: "url(" + e.backdrop + ")" }
-                      : {}
-                  }
-                >
-                  {e.available ? (
-                    <Play size={23} fill="currentColor" />
-                  ) : (
-                    <AlertCircle size={22} />
-                  )}
+                <div className="episode-thumb" style={e.backdrop ? { backgroundImage: "url(" + e.backdrop + ")" } : {}}>
+                  {e.available ? <Play size={23} fill="currentColor" /> : <AlertCircle size={22} />}
                   <span className="card-progress">
                     <i
                       style={{
-                        width:
-                          (e.completed
-                            ? 100
-                            : Math.min(
-                                100,
-                                (e.position / (e.duration || 1)) * 100,
-                              )) + "%",
+                        width: (e.completed ? 100 : Math.min(100, (e.position / (e.duration || 1)) * 100)) + "%",
                       }}
                     />
                   </span>
@@ -410,21 +307,8 @@ export function ShowDetails() {
                       </span>
                     )}
                   </h3>
-                  <p>
-                    {e.overview ||
-                      "Episode " + e.episodeNumber + " of " + show.title}
-                  </p>
-                  <small>
-                    {e.available
-                      ? (e.position > 0 && !e.completed
-                          ? "Resume at " +
-                            Math.floor(e.position / 60) +
-                            " min · "
-                          : "") +
-                        Math.max(1, Math.round(e.duration / 60)) +
-                        " min"
-                      : "Source file unavailable"}
-                  </small>
+                  <p>{e.overview || "Episode " + e.episodeNumber + " of " + show.title}</p>
+                  <small>{e.available ? (e.position > 0 && !e.completed ? "Resume at " + Math.floor(e.position / 60) + " min · " : "") + Math.max(1, Math.round(e.duration / 60)) + " min" : "Source file unavailable"}</small>
                 </div>
                 <ArrowRight size={18} />
               </Link>
@@ -436,6 +320,7 @@ export function ShowDetails() {
     </main>
   );
 }
+
 function ShowEditor({ show }: { show: TVShowDetails }) {
   const client = useQueryClient(),
     [open, setOpen] = useState(show.review),
@@ -464,26 +349,15 @@ function ShowEditor({ show }: { show: TVShowDetails }) {
       {open && (
         <>
           <h2>Match this series</h2>
-          <p className="muted small">
-            Only episodes with local files are shown. Choose the correct TV
-            match to add posters, season information, and episode names.
-          </p>
+          <p className="muted small">Only episodes with local files are shown. Choose the correct TV match to add posters, season information, and episode names.</p>
           <form
             className="inline-form"
             onSubmit={(e) => {
               e.preventDefault();
-              void act(async () =>
-                setResults(
-                  await api("/tv/search?q=" + encodeURIComponent(query)),
-                ),
-              );
+              void act(async () => setResults(await api("/tv/search?q=" + encodeURIComponent(query))));
             }}
           >
-            <input
-              aria-label="TV metadata search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+            <input aria-label="TV metadata search" value={query} onChange={(e) => setQuery(e.target.value)} />
             <button disabled={busy} className="secondary">
               Search TMDB TV
             </button>
@@ -493,14 +367,7 @@ function ShowEditor({ show }: { show: TVShowDetails }) {
               <span>
                 {r.name} ({r.first_air_date?.slice(0, 4)})
               </span>
-              <button
-                disabled={busy}
-                onClick={() =>
-                  act(() =>
-                    post("/series/" + show.id + "/match", { tmdbId: r.id }),
-                  )
-                }
-              >
+              <button disabled={busy} onClick={() => act(() => post("/series/" + show.id + "/match", { tmdbId: r.id }))}>
                 Use this show
               </button>
             </div>
@@ -533,23 +400,9 @@ function ShowEditor({ show }: { show: TVShowDetails }) {
             </label>
             <label>
               Content certification
-              <select
-                name="certification"
-                defaultValue={show.certification || ""}
-              >
+              <select name="certification" defaultValue={show.certification || ""}>
                 <option value="">Unrated</option>
-                {[
-                  "TV-Y",
-                  "TV-Y7",
-                  "TV-Y7-FV",
-                  "TV-G",
-                  "TV-PG",
-                  "TV-14",
-                  "TV-MA",
-                  "G",
-                  "PG",
-                  "NR",
-                ].map((c) => (
+                {["TV-Y", "TV-Y7", "TV-Y7-FV", "TV-G", "TV-PG", "TV-14", "TV-MA", "G", "PG", "NR"].map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
@@ -568,6 +421,7 @@ function ShowEditor({ show }: { show: TVShowDetails }) {
     </section>
   );
 }
+
 export function TVReviewPanel() {
   const shows = useQuery({
     queryKey: ["tv", "organize-options"],
@@ -577,17 +431,14 @@ export function TVReviewPanel() {
     [error, setError] = useState("");
   const { data } = useQuery({
     queryKey: ["tv", "review"],
-    queryFn: () =>
-      api<{ id: string; title: string; filename: string }[]>("/tv/review"),
+    queryFn: () => api<{ id: string; title: string; filename: string }[]>("/tv/review"),
   });
-  async function organize(e: FormEvent<HTMLFormElement>, id: string) {
+  async function organize(e: SubmitEvent<HTMLFormElement>, id: string) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     setError("");
     try {
-      const selected = shows.data?.items.find(
-        (s) => s.id === f.get("seriesId"),
-      );
+      const selected = shows.data?.items.find((s) => s.id === f.get("seriesId"));
       await post("/episodes/" + id + "/organize", {
         seriesId: selected?.id,
         showTitle: selected?.title || f.get("showTitle"),
@@ -601,29 +452,18 @@ export function TVReviewPanel() {
       setError((e as Error).message);
     }
   }
+  if (!data?.length) return null;
   return (
     <section className="panel">
-      <h2>TV organization</h2>
-      <p className="muted">
-        Choose TV shows or Mixed detection on each folder, then scan. Recognized
-        episodes are grouped automatically. Shows needing a TMDB match can be
-        corrected from their show page.
-      </p>
-      <Link className="secondary" to="/shows">
-        Open TV library
-        <ArrowRight size={16} />
-      </Link>
+      <h2>Episodes needing organization ({data.length})</h2>
+      <p className="muted">These files could not be grouped automatically. Choose a show and assign a season and episode number for each file.</p>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
       {data?.map((item, i) => (
-        <form
-          key={item.id + "-" + i}
-          className="tv-organize-form"
-          onSubmit={(e) => organize(e, item.id)}
-        >
+        <form key={item.id + "-" + i} className="tv-organize-form" onSubmit={(e) => organize(e, item.id)}>
           <h3>{item.filename}</h3>
           <label>
             Existing show
