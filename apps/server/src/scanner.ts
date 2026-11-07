@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { eq, and } from "drizzle-orm";
 import {
   libraries,
+  catalogExclusions,
   movies,
   mediaFiles,
   scanJobs,
@@ -53,6 +54,14 @@ export function createScanner(
       notify();
       await reclassifyExistingEpisodes(db, id);
       const root = await realpath(library.path);
+      const excluded = new Set(
+        (
+          await db
+            .select({ path: catalogExclusions.path })
+            .from(catalogExclusions)
+            .where(eq(catalogExclusions.libraryId, id))
+        ).map((f) => f.path),
+      );
       async function walk(dir: string): Promise<void> {
         let entries;
         try {
@@ -82,6 +91,7 @@ export function createScanner(
             errors.push("Skipped a path outside library root");
             continue;
           }
+          if (excluded.has(canonical)) continue;
           seen.add(canonical);
           try {
             const info = await stat(canonical);
@@ -377,6 +387,15 @@ export function createScanner(
         .then(() => scan(id, jobId))
         .catch((e) => log.warn({ err: e }, "Scan queue failure"));
       return jobId;
+    },
+    exclusive<T>(operation: () => Promise<T>): Promise<T> {
+      if (closed) return Promise.reject(new Error("Server is shutting down"));
+      const result = queue.then(operation);
+      queue = result.then(
+        () => {},
+        () => {},
+      );
+      return result;
     },
     busy: (id: string) => pending.has(id),
     async close() {

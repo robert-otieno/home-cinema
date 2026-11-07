@@ -1,3 +1,4 @@
+import { CatalogCleanup } from "./CatalogCleanup";
 import { FolderPathField } from "./FolderPicker";
 import { MovieReview } from "./MovieReview";
 import { TVShows, ShowDetails, TVShelf, TVContinue, TVReviewPanel } from "./TV";
@@ -75,6 +76,7 @@ export function App() {
       void client.invalidateQueries({ queryKey: ["tv"] });
       void client.invalidateQueries({ queryKey: ["scans"] });
       void client.invalidateQueries({ queryKey: ["libraries"] });
+      void client.invalidateQueries({ queryKey: ["catalog"] });
     };
     return () => events.close();
   }, [!!me.data, client]);
@@ -1325,6 +1327,7 @@ function Admin() {
                 </form>
               </section>
               <TVReviewPanel />
+              <CatalogCleanup />
               <section className="panel">
                 <h2>Recent scans</h2>
                 {!scans.data?.length && (

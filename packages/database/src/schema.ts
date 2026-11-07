@@ -336,3 +336,16 @@ export const seriesWatchlist = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.profileId, t.seriesId] })],
 );
+
+export const catalogExclusions = sqliteTable(
+  "catalog_exclusions",
+  {
+    libraryId: text()
+      .notNull()
+      .references(() => libraries.id),
+    path: text().notNull(),
+    title: text().notNull(),
+    removedAt: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.libraryId, t.path] })],
+);

@@ -1,9 +1,12 @@
+import { useNavigate } from "react-router-dom";
+import { RemoveCatalogEntry } from "./CatalogCleanup";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, Check, AlertCircle } from "lucide-react";
 import type { Movie, Session } from "@cinema/shared";
 import { api, post } from "./api";
 export function MovieReview({ movie }: { movie: Movie }) {
+  const navigate = useNavigate();
   const client = useQueryClient(),
     [open, setOpen] = useState(movie.review),
     [query, setQuery] = useState(movie.title),
@@ -209,6 +212,11 @@ export function MovieReview({ movie }: { movie: Movie }) {
           </details>
         </>
       )}
+      <RemoveCatalogEntry
+        ids={[movie.id]}
+        label="Remove from library"
+        onRemoved={() => navigate("/browse")}
+      />
       {error && (
         <p className="error" role="alert">
           {error}

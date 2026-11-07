@@ -7,7 +7,7 @@ Run from the project root:
 - pnpm dev: Fastify watch plus Vite on 5173, API proxy to 8094.
 - pnpm build: TypeScript check, web bundle and server bundle.
 - pnpm start: compiled server and static web client, default port 8094.
-- pnpm test: 49 meaningful checks using synthetic media; requires FFmpeg/FFprobe and a built client.
+- pnpm test: 58 meaningful checks using synthetic media; requires FFmpeg/FFprobe and a built client.
 - pnpm check:metadata: isolated live provider validation. Uses .env without printing secrets.
 - pnpm format: format source with Prettier.
 
@@ -37,3 +37,5 @@ Recognized imports reclassify at startup and during scans, including unchanged f
 
 ## Spotlight visual system
 The 2026-11-07 redesign uses design-system/home-cinema/MASTER.md and apps/web/src/cinema-theme.css (loaded after style.css). New visual work should use these charcoal/ivory/amber tokens. ui-registry.md documents the current patterns. Keep the media-server folder chooser and per-film review workflow.
+
+Catalog cleanup uses migration 0007 catalog_exclusions and scanner.exclusive to serialize removals with scans. Keep database removal transactional, preserve source files, protect active playback, and recheck disk/root availability for bulk missing cleanup. See docs/catalog-cleanup.md.

@@ -64,3 +64,8 @@ Removed the empty informational TV organization panel. TVReviewPanel now renders
 ## Mobile connected folders, 2026-11-07
 Grouped each folder's actions in library-actions and named its information block library-info. Folder content now has a visible label. Mobile uses icon/info columns with a full-width action area: Scan and Watch side by side, Disconnect separate. Paths, timestamps and selectors no longer collapse into a narrow column.
 Build passes; disposable 375px browser verification confirms full-width selectors and no page overflow. Screenshot in chat outputs. No backend or data changes.
+
+## Catalog cleanup, 2026-11-07
+Implemented adult-only catalog listing/removal/re-import routes, migration 0007 catalog_exclusions, and scanner serialization/exclusion checks. Removing entries deletes dependent DB records transactionally, never source media; active playback blocks removal. Bulk missing cleanup checks that roots are online and sources truly absent. Empty TV shows are cleaned when their last episode is removed.
+UI: CatalogCleanup in Media library settings searches movies/episodes, filters missing entries, shows paths and offers per-entry/visible-page confirmation. MovieReview also offers direct removal. Global allow-reimport resets exclusions; scanning re-adds existing files without old history. See docs/catalog-cleanup.md.
+Validation: build and 58 tests pass. Disposable browser verified cancel, missing deletion, retained duplicate, 375px no overflow. Other device untouched; upgrade package includes all prior work. Next: apply source update on that device, preserve .env/data, build/restart, scan then review cleanup. Never auto-remove records for offline drives.

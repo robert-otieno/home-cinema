@@ -1,3 +1,4 @@
+import { registerCatalogRoutes } from "./catalog-routes.ts";
 import { listServerFolders } from "./folder-browser.ts";
 import { registerTVRoutes } from "./tv-routes.ts";
 import { reclassifyExistingEpisodes, tvFamilyRatings } from "./television.ts";
@@ -502,6 +503,11 @@ export async function buildApp(
   await reclassifyExistingEpisodes(db);
   const scanner = createScanner(db, notify, app.log),
     streaming = createStreaming(db);
+  registerCatalogRoutes(app, db, {
+    admin: administrator,
+    exclusive: scanner.exclusive,
+    notify,
+  });
   const watchers = new Map<string, ReturnType<typeof chokidar.watch>>(),
     timers = new Map<string, ReturnType<typeof setTimeout>>();
   async function watchLibrary(library: typeof libraries.$inferSelect) {
